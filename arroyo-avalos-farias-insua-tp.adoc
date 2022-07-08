@@ -1,0 +1,156 @@
+= Base de datos: Trabajo Práctico Grupal
+
+Integrantes:: Arroyo Guadalupe <guadalupenicole102@gmail.com>
+Avalos Manuel <avaloslautaro10@gmail.com>
+Farias Federico <federicofarias@outlook.com>
+Insua Agustina <aguss.insua99@gmail.com>
+
+Docentes:: Hernán Rondelli - Hernán Czemerinski
+
+:title-page:
+
+:numbered:
+
+:source-highlighter: coderay
+
+:tabsize: 4
+
+
+
+== Introducción
+
+
+
+El objetivo de este trabajo práctico es la creación de una base de datos para almacenar informacion
+
+relativa a tarjetas de crédito, desde la autorizacion de compra, generar resumenes y generar alertas internas para revisar la actividad de los clientes con sus compras. Para llevar a cabo esto, todo codigo SQL escrito se ejecutara desde una aplicacion CLI escrita en Go.
+
+Por último, para poder comparar el modelo relacional con un modelo no relacional NoSQL, se implementa una base de datos NoSQL (BoltDB) basada en JSON, la cual carga tres instancias de datos de 3 entidades pertenecientes a la base de datos.
+
+
+
+== Descripción
+
+
+
+En este apartado se nombraran problemas que transcurrieron durante la implementacion y las soluciones encontradas:
+
+
+
+
+
+General::
+
+Para poder trabajar adecuadamente y sin estar esperando los commits de cada uno de los integrantes decidimos usar https://codecollab.io para codear los 4 al mismo tiempo y meets para definir los puntos a seguir.
+
+Realizamos una busqueda constante de la documentacion para resolver de manera adecuada los diferentes problemas que surgieron a traves del trabajo. 
+
+Para poder generar los numeros de rechazos, compra, linea de detalle. resumen y de alerta utilizamos secuencias para no cambiar el tipo de variable a `SERIAL` y luego tener que utilizar `DEFAULT` en los inserts.
+
+
+
+
+Para la funcion autorizacion de compra::
+
+
+
+Luego el hacer cada uno de los procedimientos para determinar la autorizacion de la compra o el rechazo asi como tambien los diferentes tipos de datos de las fechas, el como extraerlo y como utilizarlo. Se opto por testear cada uno de los casos por separado ya que los procedimientos a validar estaban juntos en una misma funcion y era mas dificil encontrar el error exacto.
+
+
+
+Para la funcion generaracion del resumen::
+
+
+
+La dificultad estuvo en definir la forma en la que se guardarian los datos de las distintas tablas. En primera instancia se intento hacer un producto cartesiano entre las tablas y almacenar los datos de las mismas en una variable. Finalmente se opto por guardar informacion de los datos en distintas variables utilizando `select * into variable` para una utilizacion mas sencilla. Para el monto del resumen se uso un `for loop` y un contador para sumar los montos de cada compra.
+
+
+
+Para la funcion alerta a clientes::
+
+
+
+La dificultad estuvo en realizar las comparaciones de las fechas y tarjetas ya que no comprendiamos como usar el new y old en Trigger. Se opto por seleccionar y guardar en una variable la ultima tarjeta que cumpla con las condiciones dadas par ia luego poder comparar esta variable conad el new. Es decir, con el nuevo valor.
+
+
+
+Para imprimir por consola los elementos agregados a la base de datos::
+
+
+
+La dificultad estuvo en que en un principio se imprimian los elementos como arreglo de byte ascii,para solucionar esto se utilizo la funcion ftm.Sprintf pasandole por parametro lo obtenido de la lectura de dichos elementos.
+
+
+== Implementación
+
+
+
+Como observamos en el código, la funcion `main()` invoca a la función `menuPrincipal()` que despliega un menu de opciones
+
+para que el usuario pueda interactuar con la base de datos.
+
+
+
+La función `crearTablas()` se conecta con la base de datos, y ejecuta las sentencias en sql que crean las tablas para la base de datos.
+
+
+
+Las funciones `cargarClientes()`, `cargarComercio()`, `cargarTarjetas()`, `cargarCierres()` y `cargarConsumos()` rellenan con datos las 
+
+tablas creadas en la funcion `crearTablas()`.
+
+
+
+La función `generarResumen()` se conecta con la base de datos, y ejecuta la funcion `generarResumen(numcliente int, periodo_mes int, periodo_anio int)`,
+
+que a partir del numero del cliente se fija cuál es su tarjeta y su terminación, para poder sumar los montos de las compras realizadas en el periodo 
+
+pasado por parametro. Y así generar el resumen de la tarjeta del cliente en el periodo dado.
+
+
+
+La función `autorizarCompra()` se fija que el numero de la tarjeta y el codigo de seguridad coresponda a una tarjeta existente. 
+
+Además debe estar vigente y no estar vencida. Después se recorren los montos de las compras pagadas de esa tarjeta y se los suma en la variable 
+
+`total` para verificar que no supere el limite de compra. En caso de cumplir con todo se inserta la compra a la tabla `compra`. 
+
+
+
+La función `ingresoRechazoAlerta()` inserta en `alerta` los rechazos. Ejecuta el trigger después de ingresar un valor en la tabla `rechazo`.
+
+La función `dosComprasMenosUnMinutoCPAlerta()` inserta en la variable `ultima` la última compra realizada por una tarjeta. Después verifica si el tiempo 
+
+de la compra es menor a un minuto, si los numeros de comercio son distintos y si el codigo postal es el mismo para ingresar los valores a la tabla de
+
+`alerta`. Ejecuta el trigger antes de insertar una compra en la tabla `compra`.
+
+
+
+La función `dosComprasMenosCincoMinutosDifCPAlerta()` ingresa en la variable `ultima` la última compra realizada por una tarjeta. Luego verifica si el tiempo
+
+de la compra es menor a cinco minutos, si los numeros de los comercios son distintos, y si los codigos postales son diferentes para insertar en la tabla de
+
+`alerta` los valores requeridos. Ejecuta el trigger entes de insertar una compra en la tabla de `compra`.
+
+
+
+La función `dosComprasMenosCincoMinutosDifCPAlerta()` ingresa en la variable `ultima` la última compra realizada por una tarjeta. Luego verifica si el tiempo
+
+de la compra es menor a cinco minutos, si los numeros de los comercios son distintos, y si los codigos postales son diferentes para insertar en la tabla de
+
+`alerta` los valores requeridos. Ejecuta el trigger entes de insertar una compra en la tabla de `compra`.
+
+
+
+La función `excesoLimiteAlerta()` ingresa en la variable `ultimo` el ultimo rechazo que realizado por una tarjeta. Luego verifica si el dia, el mes y el año es el mismo que el nuevo valor de fecha para actualizar el estado de esa tarjeta e insertar una `alerta` con los valores requeridos.
+
+Ejecuta el trigger entes de insertar un rechazo en la tabla de `rechazo`.
+
+
+
+== Conclusiones
+
+
+
+Gracias a este trabajo logramos profundizar y aplicar conocimientos sobre la programación en sql y golang.A su vez, nos permitio entender mejor las diferencias entre las bases de datos relacionales y las no relacionales.
